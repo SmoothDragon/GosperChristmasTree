@@ -5,6 +5,7 @@
 Make a Christmas tree from succesive iterations of Gosper Hexagon.
 
 ![Gosper Hexagon](images/GosperHexagon.svg)
+![gosper](https://user-images.githubusercontent.com/11061466/102945633-3a998700-4473-11eb-9ae5-352203810518.gif)
 
 # Progress
 I tried to scale the shape to a point first, but the edges got so close that it could not be sliced correctly in vase mode.
