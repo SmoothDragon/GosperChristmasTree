@@ -75,8 +75,8 @@ def RecurseGosper(G):
     A--ABA--AB++B++
     --A--AB++BAB++B
     '''
-    AB = G>>6  # 1 if it is a B edge, 0 otherwise
-    print(AB)
+    AB = G>>6  # 0 if A edge, 1 if B edge
+    # print(AB)
     return np.stack( (  # recursion
         (G+    AB)%6,       #   A or  +A
         (G-1+  AB)%6+96,    #  -B or  -B
@@ -86,53 +86,93 @@ def RecurseGosper(G):
         (G  -1*AB)%6,       #   A or ++A
         (G+1-1*AB)%6+96,    #  +B or  +B
         ), 1).ravel()
-    # return np.stack( (  # A recursion
-        # (G-0)%6,  # A
-        # (G-1)%6,  # -B
-        # (G-3)%6,  # --B
-        # (G-2)%6,  # +A
-        # (G-0)%6,  # ++A
-        # (G-0)%6,  # A
-        # (G+1)%6,  # +B-
-        # ), 1).ravel()
-    return np.stack( (  # B recursion
-        (G+1)%6,  # +A
-        (G-0)%6,  # -B
-        (G-0)%6,  # B
-        (G-2)%6,  # --B
-        (G-3)%6,  # -A
-        (G-1)%6,  # ++A
-        (G+0)%6,  # +B
-        ), 1).ravel()
-    return np.stack( (
-        G, # A
-        (G-2)%6,  # --A
-        (G-2)%6,  # B
-        (G-2)%6,  # A
-        (G-4)%6,  # --A
-        (G-4)%6,  # B
-        (G-2)%6,  # ++B
+
+def RecurseGosper2(G):
+    '''Take a gosper path to the next iteration.
+    Input:  np.array(uint8)
+    Output: np.array(uint8)
+    The lower three bits of array elements contain a value modulo 6.
+    ii in 0..5 represent the directions of the six roots of unity. exp(ii * 2*pi*1j/6)
+    Byte stores B flag, zero bit, value mod 6: BB0321
+    0x30=96 is the magic value to XOR to indicate B that won't mess up (%6)
+
+    Gosper Dragon
+    A--ABA--AB++B++
+    --A--AB++BAB++B
+    '''
+    AB = G>>6  # 0 if A edge, 1 if B edge
+    # print(AB)
+    return np.stack( (  # recursion
+        (G+ -2*AB)%6,       #   A or --A
+        (G-2-2*AB)%6,       # --A or --A
+        (G-2-2*AB)%6+96,    #   B or   B
+        (G-2     )%6+AB*96, #   A or ++B
+        (G-4+2*AB)%6,       # --A or   A
+        (G-4+2*AB)%6+96,    #   B or   B
+        (G-2+2*AB)%6+96,    # ++B or ++B
         ), 1).ravel()
 
-v = RecurseGosper(np.array([0,2,4]))
-# v = RecurseGosper(np.array([4,2,0]))
-vv = RecurseGosper(v)
-vvv = RecurseGosper(vv)
-print(vv)
-def turtle_show(G):
+def show_turtle(G, size=5, last=0):
+    '''Draw turtle walk on triangular lattice given a sequence of directions in 0..5
+    '''
     import turtle
 
-    size = 30
-    last = 0
     turtle.speed("fastest")
     for val in list(G%6):
         turtle.left((val-last)*60)
         turtle.forward(size)
         last = val
 
-turtle_show(vvv%6)
-import time
-time.sleep(15)
+def show_plot(G):
+    fig, ax = plt.subplots()
+    # plt.axis('off')
+    resolution = 512
+
+    ax.set_aspect('equal')
+    points = np.cumsum(np.exp(G*2j*np.pi/6))
+    ax.fill(*xy(points),'g')
+    plt.show()
+
+
+def GosperTrim(G):
+    result = []
+    last = G[0]
+    skip = False
+    for ii in G[1:]:
+        if (last-ii)%6 == 2:
+            skip = True
+            continue
+        if skip:
+            result.append((last+1)%6)
+            skip = False
+        else:
+            result.append(last)
+        last = ii
+    print(G)
+    print(result)
+    return np.array(result, dtype=np.uint8)
+
+
+v = (np.array([0,2,4]))
+# v = RecurseGosper(np.array(range(6)))
+# v = (np.array([4,2,0]))
+# v = RecurseGosper2(v)
+# v = RecurseGosper2(v)
+# v = RecurseGosper2(v)
+v = RecurseGosper(v)
+# v = RecurseGosper(v)
+# v = RecurseGosper(v)
+
+print(v)
+v=v%6
+# show_turtle(v)
+show_plot(v)
+v = GosperTrim(v)
+show_plot(v)
+
+input()
+
+
 exit(0)
 
 limit = 5
