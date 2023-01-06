@@ -8,6 +8,7 @@
 import sys
 import numpy as np
 import stl
+import matplotlib.pyplot as plt
 
 def parseInput():
     parser = argparse.ArgumentParser(
@@ -56,6 +57,19 @@ def setLogging(verbose):
         level = verbose * 10  # Use verbosity number specified
     logging.basicConfig(level=level, format='%(levelname)-8s %(message)s')
     logging.debug('Using verbosity level {level:d}'.format(**locals()))
+
+def plot_SVG(filename, x, y, closed=True, fill=True):
+    if closed:
+        x = np.concatenate((x, x[0:1]))
+        y = np.concatenate((y, y[0:1]))
+    fig, ax = plt.subplots()
+    ax.set_aspect('equal')
+    plt.axis('off')
+    if fill:
+        ax.fill(x, y, 'g')
+    else:
+        ax.plot(x, y, 'b', linewidth=2)
+    plt.savefig(filename)
 
 def xy(vec):
     return vec.real, vec.imag
@@ -149,11 +163,31 @@ def gosper_iter(v0):
         v0+w**4*V+2*V,
         v0+w**4*V+3*V,
         v0+2*V,
-        v0+w*V+V,
-        v0+w*V+2*V,
+        # v0+w*V+V,
+        # v0+w*V+2*V,
         ])
     # return entire sequence in order, each edge at a time.
     return M.flatten(order='F')  # Fortran order to read down columns
+
+def gosper_path(p0, p1, order):
+    ''' 
+    Gosper Dragon
+    A--ABA--AB++B++
+    --A--AB++BAB++B
+    '''
+    if order == 0:
+        yield p0
+        # yield p1
+    else:
+        v = ((5-1j*np.sqrt(3))/(2*np.sqrt(7)**2))*(p1-p0)  # Lattice basis vector
+        w = v*(-1 + 1j*np.sqrt(3))/2  # Second Eisenstein basis vector
+        yield from gosper_path(p0, p0-v-w, order-1)
+        yield from gosper_path(p0-v-w, p0-w, order-1)
+        yield from list(gosper_path(p0+v-w, p0-w, order-1))[::-1]
+        yield from gosper_path(p0+v-w, p0+2*v-w, order-1)
+        yield from gosper_path(p0+2*v-w, p0+2*v, order-1)
+        yield from list(gosper_path(p0+2*v+w, p0+2*v, order-1))[::-1]
+        yield from list(gosper_path(p0+3*v+w, p0+2*v+w, order-1))[::-1]
 
 
 
@@ -260,8 +294,30 @@ if __name__ == '__main__':
     # Save to outfile dropping the final ".py"
     filename = '.'.join(sys.argv[0].split('.')[:-1])
 
+    # Equilateral triangle
+    theta = np.linspace(0, 2*np.pi, 4)[:-1]
+    theta = np.exp(1j*theta)
     ring = regular_polygon(3)
+    # dragon = np.array(list(gosper_path(*theta[:2], iter)))
+    # dragon = np.concatenate([dragon, theta[1]*dragon, theta[2]*dragon])
+
     ring2 = gosper_iter(ring)
+
+    iter = 0
+    fig, ax = plt.subplots()
+    # dragon, = ax.plot(*xy(np.array(list(gosper_path(*theta[:2], iter)))), 'b', linewidth=1)
+    # dragon, = ax.plot(*xy(theta[1]*np.array(list(gosper_path(*theta[:2], iter)))), 'r', linewidth=1)
+    # dragon, = ax.plot(*xy(theta[2]*np.array(list(gosper_path(*theta[:2], iter)))), 'g', linewidth=1)
+    points = np.array(list(gosper_path(*theta[:2], iter)))
+    dragon = np.concatenate((points, theta[1]*points, theta[2]*points))
+    plt.axis('equal')
+    ax.fill(*xy(dragon))
+    plt.show()
+
+    # plot_SVG('gosper.svg', *xy(np.concatenate((ring, ring[0:1]))))
+    plot_SVG('gosper.svg', *xy(ring))
+    plot_SVG('gosper2.svg', *xy(ring2))
+    plot_SVG('dragon.svg', *xy(dragon))
     ring = gosper_iter(ring2)
     ring, ring2 = ring2, ring
     print(len(ring))
