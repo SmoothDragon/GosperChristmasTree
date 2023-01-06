@@ -1,0 +1,7 @@
+#!/bin/bash
+
+# pip install solidpython
+
+export PATH=`pwd -P`/bin:$PATH
+
+tmux rename-session Gosper
