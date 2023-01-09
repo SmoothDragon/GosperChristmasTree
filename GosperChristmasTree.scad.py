@@ -64,8 +64,8 @@ def gosper_path(p0, p1, order):
 
 def RecurseGosper(G):
     '''Take a gosper path to the next iteration.
-    Input:  np.array(uint8)
-    Output: np.array(uint8)
+    Input:  np.array(int8)
+    Output: np.array(int8)
     The lower three bits of array elements contain a value modulo 6.
     ii in 0..5 represent the directions of the six roots of unity. exp(ii * 2*pi*1j/6)
     Byte stores B flag, zero bit, value mod 6: BB0321
@@ -89,8 +89,8 @@ def RecurseGosper(G):
 
 def RecurseGosper2(G):
     '''Take a gosper path to the next iteration.
-    Input:  np.array(uint8)
-    Output: np.array(uint8)
+    Input:  np.array(int8)
+    Output: np.array(int8)
     The lower three bits of array elements contain a value modulo 6.
     ii in 0..5 represent the directions of the six roots of unity. exp(ii * 2*pi*1j/6)
     Byte stores B flag, zero bit, value mod 6: BB0321
@@ -133,44 +133,61 @@ def show_plot(G):
     ax.fill(*xy(points),'g')
     plt.show()
 
+def show_plots(G1,G2):
+    fig, axs = plt.subplots(2)
+    # plt.axis('off')
+    resolution = 512
+
+    axs[0].set_aspect('equal')
+    axs[1].set_aspect('equal')
+    points = np.cumsum(np.exp(G1*2j*np.pi/6))
+    axs[0].fill(*xy(points),'g')
+    points = np.cumsum(np.exp(G2*2j*np.pi/6))
+    axs[1].fill(*xy(points),'b')
+    plt.show()
+
 
 def GosperTrim(G):
-    result = []
-    last = G[0]
-    skip = False
-    for ii in G[1:]:
-        if (last-ii)%6 == 2:
-            skip = True
-            continue
-        if skip:
-            result.append((last+1)%6)
-            skip = False
+    result = [G[0]]
+    for ii in range(1, len(G)):
+        if (G[ii-1]-G[ii])%6 == 4:
+            result[-1] = (G[ii]-1)%6
         else:
-            result.append(last)
-        last = ii
+            result.append(G[ii])
+    if (G[-1]-G[0])%6 == 4:
+        result[0] = (G[0]-1)%6
+        result.pop()
+        # result = result[:-1]
     print(G)
+    result = np.array(result, dtype=np.int8)
     print(result)
-    return np.array(result, dtype=np.uint8)
+    return result
 
 
-v = (np.array([0,2,4]))
+
+v = (np.array([0,2,4], dtype=np.int8))
+# v = (np.array([0,1+96,2,3+96,4, 5+96], dtype=np.int8))
 # v = RecurseGosper(np.array(range(6)))
 # v = (np.array([4,2,0]))
 # v = RecurseGosper2(v)
 # v = RecurseGosper2(v)
 # v = RecurseGosper2(v)
 v = RecurseGosper(v)
-# v = RecurseGosper(v)
-# v = RecurseGosper(v)
+v = RecurseGosper(v)
+v = RecurseGosper(v)
+v = RecurseGosper(v)
 
 print(v)
 v=v%6
-# show_turtle(v)
-show_plot(v)
-v = GosperTrim(v)
-show_plot(v)
-
-input()
+# show_turtle(v); input()
+# show_plot(v)
+w = GosperTrim(v)
+n=1
+while len(w):
+    show_plots(v,w)
+    v,w = w,GosperTrim(w)
+    n += 1
+print(f'Iterations: {n}')
 
 
 exit(0)
